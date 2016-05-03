@@ -32,8 +32,8 @@
 //| The fact that you are presently reading this means that you have
 //| had knowledge of the CeCILL license and that you accept its terms.
 
-#ifndef MODIFIER_NOVELTY_HPP
-#define MODIFIER_NOVELTY_HPP
+#ifndef MODIFIER_NSLC_HPP
+#define MODIFIER_NSLC_HPP
 
 #include <Eigen/Core>
 #include <sferes/parallel.hpp>
@@ -63,7 +63,7 @@ namespace sferes {
 
       template<typename Ea>
       void apply(Ea& ea) {
-        SFERES_CONST size_t k = Params::nslc::k;
+        size_t k = Params::nslc::k;
         // merge the population and the archive in a single archive
         pop_t archive = _archive;
         archive.insert(archive.end(), ea.pop().begin(), ea.pop().end());
@@ -77,19 +77,20 @@ namespace sferes {
 
           // sort
           parallel::sort(archive.begin(), archive.end(),
-                         nslc::_compare_dist_p<phen_t>(archive[i]));
+                         nslc::_compare_dist_p<phen_t>(ea.pop()[i]));
 
           // local competition score
           int rank = k;
           for (size_t j = 0; j < k; ++j)
-            if (archive[j]->fit().value() < archive[j]->fit().value())
+            if (ea.pop()[i]->fit().value() < archive[j]->fit().value())
               rank--;
           ea.pop()[i]->fit().set_obj(0, rank);
 
           // novelty
           double n = 0.0;
           for (size_t j = 0; j < k; ++j)
-            n += archive[i]->fit().dist(*_archive[j]);
+            n += ea.pop()[i]->fit().dist(*archive[j]);
+
           ea.pop()[i]->fit().set_obj(1, n);
 
           // add to the archive
@@ -109,8 +110,10 @@ namespace sferes {
           _not_added = 0;
         }
         if (_archive.size() > Params::novelty::k
-            && added > Params::novelty::adding_tresh)//4
+            && added > Params::novelty::adding_tresh) {//4
           _rho_min *= 1.05f;
+        }
+        std::cout<<"archive size:"<<_archive.size()<<std::endl;
       }
       const pop_t& archive() const {
         return _archive;

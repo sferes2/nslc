@@ -41,8 +41,6 @@
 namespace sferes {
   namespace ea {
     namespace crowd_gen {
-      static const float inf = 1.0e14;
-
       // genotype-based replacement for the crowding distance
       // in NSGA-2
       // WARNING: this will only work with vector-based genotypes (with the data() method)

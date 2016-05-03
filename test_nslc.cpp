@@ -35,9 +35,9 @@
 
 
 
-#define NO_PARALLEL
+//#define NO_PARALLEL
 #define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE nslc
+#define BOOST_TEST_MODULE nsga2_novelty
 
 
 #include <boost/test/unit_test.hpp>
@@ -45,11 +45,15 @@
 #include <iostream>
 #include <sferes/phen/parameters.hpp>
 #include <sferes/gen/evo_float.hpp>
+#include <sferes/ea/nsga2.hpp>
 #include <sferes/eval/eval.hpp>
 #include <sferes/stat/pareto_front.hpp>
 #include <sferes/eval/parallel.hpp>
-#include <sferes/modif/dummy.hpp>
-#include <modules/nslc/ea_nslc.hpp>
+#include <sferes/modif/novelty.hpp>
+#include <sferes/stat/archive.hpp>
+#include <sferes/stat/best_archive_fit.hpp>
+#include <Eigen/Core>
+#include "ea_nslc.hpp"
 
 using namespace sferes;
 using namespace sferes::gen::evo_float;
@@ -57,7 +61,7 @@ using namespace sferes::gen::evo_float;
 struct Params {
   struct evo_float {
     SFERES_CONST float cross_rate = 0.5f;
-    SFERES_CONST float mutation_rate = 1.0f / 30.0f;
+    SFERES_CONST float mutation_rate = 0.5f;
     SFERES_CONST float eta_m = 15.0f;
     SFERES_CONST float eta_c = 10.0f;
     SFERES_CONST mutation_t mutation_type = polynomial;
@@ -74,6 +78,13 @@ struct Params {
     SFERES_CONST float max = 1.0f;
   };
   struct nslc {
+    SFERES_CONST float rho_min_init = 1.0;
+    SFERES_CONST size_t k = 8;
+    SFERES_CONST size_t stalled_tresh = 2500;
+    SFERES_CONST size_t adding_tresh = 4;
+    SFERES_CONST float add_to_archive_prob = 0;
+  };
+  struct novelty {
     SFERES_CONST float rho_min_init = 1.0;
     SFERES_CONST size_t k = 8;
     SFERES_CONST size_t stalled_tresh = 2500;
@@ -117,28 +128,74 @@ public:
 };
 
 
-
-BOOST_AUTO_TEST_CASE(test_nsga2) {
+BOOST_AUTO_TEST_CASE(test_novelty_multi) {
   srand(time(0));
 
   typedef gen::EvoFloat<30, Params> gen_t;
   typedef phen::Parameters<gen_t, FitZDT2<Params>, Params> phen_t;
   typedef eval::Parallel<Params> eval_t;
-  typedef boost::fusion::vector<stat::ParetoFront<phen_t, Params> >  stat_t;
-  typedef boost::fusion::vector<modif::Dummy<> > modifier_t;
+  typedef boost::fusion::vector<stat::ParetoFront<phen_t, Params> > stat_t;//,
+                                //stat::BestArchiveFit<phen_t, Params>,
+                                //stat::Archive<phen_t, Params> >  stat_t;
+  typedef modif::Novelty<phen_t, Params> modifier_t;
   typedef ea::Nslc<phen_t, eval_t, stat_t, modifier_t, Params> ea_t;
   ea_t ea;
 
   ea.run();
 
-  /*ea.stat<0>().show_all(std::cout, 0);
+  //ea.stat<0>().show_all(std::cout, 0);
   BOOST_CHECK(ea.stat<0>().pareto_front().size() > 50);
 
   BOOST_FOREACH(boost::shared_ptr<phen_t> p, ea.stat<0>().pareto_front()) {
-    std::cout<<_g(*p)<<std::endl;
-    BOOST_CHECK(_g(*p) < 1.1);
-    BOOST_CHECK(_g(*p) > 0.0);
-
-  }*/
-
+      BOOST_CHECK_EQUAL(p->fit().objs().size(), 3);
+  }
 }
+
+
+SFERES_FITNESS(FitNovelty, sferes::fit::Fitness) {
+public:
+  template<typename Indiv>
+  void eval(Indiv& ind) {
+    this->_objs.resize(1); // pure novelty
+    float f1 = ind.data(0);
+    float g = _g(ind);
+    float h = 1.0f - pow((f1 / g), 2.0);
+    float f2 = g * h;
+
+    this->_objs[0] = -f1;
+    this->_objs[1] = -f2;
+    this->_v = Eigen::VectorXf(ind.data().size());
+    for (size_t i = 0; i < this->_v.size(); ++i)
+      this->_v(i) = ind.data()[i];
+  }
+  template<typename Indiv>
+  float dist(const Indiv& ind) {
+    return (_v - ind.fit()._v).squaredNorm();
+  }
+  Eigen::VectorXf _v;
+};
+
+
+/*
+BOOST_AUTO_TEST_CASE(test_novelty) {
+  srand(time(0));
+
+  typedef gen::EvoFloat<30, Params> gen_t;
+  typedef phen::Parameters<gen_t, FitZDT2<Params>, Params> phen_t;
+  typedef eval::Parallel<Params> eval_t;
+  typedef boost::fusion::vector<stat::BestArchive<phen_t, Params>,
+                                stat::Archive<phen_t, Params> >  stat_t;
+  typedef modif::Novelty<phen_t, Params> modifier_t;
+  typedef ea::Nsga2<phen_t, eval_t, stat_t, modifier_t, Params> ea_t;
+  ea_t ea;
+
+  ea.run();
+
+  ea.stat<0>().show_all(std::cout, 0);
+  BOOST_CHECK(ea.stat<0>().pareto_front().size() > 50);
+
+  BOOST_FOREACH(boost::shared_ptr<phen_t> p, ea.stat<0>().pareto_front()) {
+      BOOST_CHECK_EQUAL(p->fit().objs().size(), 3);
+  }
+}
+*/
