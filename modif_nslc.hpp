@@ -43,13 +43,11 @@ namespace sferes {
 
     namespace nslc {
       template<typename T>
-      struct _compare_dist_p
-      {
+      struct _compare_dist_p {
         _compare_dist_p(const T& v) : _v(v) {}
         const T& _v;
         template<typename T1, typename T2>
-        bool operator()(const T1& v1, const T2& v2) const
-        {
+        bool operator()(const T1& v1, const T2& v2) const {
           return _v->fit().dist(*v1) < _v->fit().dist(*v2);
         }
       };
@@ -114,7 +112,9 @@ namespace sferes {
             && added > Params::novelty::adding_tresh)//4
           _rho_min *= 1.05f;
       }
-      const pop_t& archive() const { return _archive; }
+      const pop_t& archive() const {
+        return _archive;
+      }
      protected:
       pop_t _archive;
       float _rho_min;

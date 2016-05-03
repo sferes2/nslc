@@ -36,10 +36,10 @@
 import os
 
 def build(bld):
-    print ("Entering directory `" + os.getcwd() + "/modules/'")
-    bld.program(features = 'cxx test',
-                   source = 'test_nslc.cpp',
-                   includes = '. ../../',
-                   uselib = 'EIGEN BOOST BOOST_UNIT_TEST_FRAMEWORK TBB ',
-                   use = 'sferes2',
-                   target = 'test_nslc')
+  print ("Entering directory `" + os.getcwd() + "/modules/'")
+  bld.program(features = 'cxx test',
+              source = 'test_nslc.cpp',
+              includes = '. ../../',
+              uselib = 'EIGEN BOOST BOOST_UNIT_TEST_FRAMEWORK TBB ',
+              use = 'sferes2',
+              target = 'test_nslc')

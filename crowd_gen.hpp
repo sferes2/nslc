@@ -70,11 +70,10 @@ namespace sferes {
               for (size_t i = 0; i < (*it)->data().size(); i++)
                 dist += (float) fabs((*it)->data()[i] - (*it2)->data()[i]);
               d+=dist / (float)(*it)->data().size();
-
-            }
+            } // end it2 loop
             d /= (float)f.size();
             (*it)->set_crowd(d);
-          }
+          } // end it loop
         }
       };
 

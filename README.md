@@ -7,11 +7,12 @@ This implementation is not the original one. If you use this specific implementa
 Mouret, Jean-Baptiste, and Stéphane Doncieux. "Sferes v2: Evolvin'in the multi-core world." *IEEE Congress on Evolutionary Computation (CEC)*, IEEE 2010.
 
 @inproceedings{mouret2010sferes,
-  title={Sferes v2: Evolvin'in the multi-core world},
-  author={Mouret, Jean-Baptiste and Doncieux, St{\'e}phane},
-  booktitle={IEEE Congress on Evolutionary Computation (CEC)},
-  pages={1--8},
-  year={2010},
-  organization={IEEE}
-}
+               title={Sferes v2:
+                      Evolvin'in the multi-core world},
+                      author={Mouret, Jean-Baptiste and Doncieux, St{\'e}phane},
+                      booktitle={IEEE Congress on Evolutionary Computation (CEC)},
+                      pages={1--8},
+                      year={2010},
+                      organization={IEEE}
+                      }
 
