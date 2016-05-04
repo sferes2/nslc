@@ -123,8 +123,7 @@ BOOST_AUTO_TEST_CASE(test_nslc) {
   typedef eval::Parallel<Params> eval_t;
   typedef boost::fusion::vector<stat::BestArchiveFit<phen_t, Params>,
                                 stat::Archive<phen_t, Params> >  stat_t;
-  typedef boost::fusion::vector<modif::Dummy<> > modifier_t;
-  typedef ea::Nslc<phen_t, eval_t, stat_t, modifier_t, Params> ea_t;
+  typedef ea::Nslc<phen_t, eval_t, stat_t, Params> ea_t;
   ea_t ea;
 
   ea.run();
