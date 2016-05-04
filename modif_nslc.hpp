@@ -95,7 +95,7 @@ namespace sferes {
 
           // add to the archive
           if (n > _rho_min
-              || misc::rand<float>() < Params::novelty::add_to_archive_prob) {
+              || misc::rand<float>() < Params::nslc::add_to_archive_prob) {
             _archive.push_back(ea.pop()[i]);
             _not_added = 0;
             ++added;
@@ -105,12 +105,12 @@ namespace sferes {
         } // end for all individuals
 
         // update rho_min
-        if (_not_added > Params::novelty::stalled_tresh) { //2500
+        if (_not_added > Params::nslc::stalled_tresh) { //2500
           _rho_min *= 0.95;
           _not_added = 0;
         }
-        if (_archive.size() > Params::novelty::k
-            && added > Params::novelty::adding_tresh) {//4
+        if (_archive.size() > Params::nslc::k
+            && added > Params::nslc::adding_tresh) {//4
           _rho_min *= 1.05f;
         }
         std::cout<<"archive size:"<<_archive.size()<<std::endl;

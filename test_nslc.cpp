@@ -49,7 +49,7 @@
 #include <sferes/eval/eval.hpp>
 #include <sferes/stat/pareto_front.hpp>
 #include <sferes/eval/parallel.hpp>
-#include <sferes/modif/novelty.hpp>
+#include <sferes/modif/dummy.hpp>
 #include <sferes/stat/archive.hpp>
 #include <sferes/stat/best_archive_fit.hpp>
 #include <Eigen/Core>
@@ -71,131 +71,62 @@ struct Params {
     SFERES_CONST unsigned size = 100;
     SFERES_CONST unsigned nb_gen = 500;
     SFERES_CONST float initial_aleat = 2.0f;
-    SFERES_CONST int dump_period = -1;
+    SFERES_CONST int dump_period = 100;
   };
   struct parameters {
     SFERES_CONST float min = 0.0f;
     SFERES_CONST float max = 1.0f;
   };
   struct nslc {
-    SFERES_CONST float rho_min_init = 1.0;
-    SFERES_CONST size_t k = 8;
-    SFERES_CONST size_t stalled_tresh = 2500;
-    SFERES_CONST size_t adding_tresh = 4;
-    SFERES_CONST float add_to_archive_prob = 0;
-  };
-  struct novelty {
-    SFERES_CONST float rho_min_init = 1.0;
-    SFERES_CONST size_t k = 8;
+    SFERES_CONST float rho_min_init = 0.1;
+    SFERES_CONST size_t k = 15;
     SFERES_CONST size_t stalled_tresh = 2500;
     SFERES_CONST size_t adding_tresh = 4;
     SFERES_CONST float add_to_archive_prob = 0;
   };
 };
 
-template<typename Indiv>
-float _g(const Indiv &ind) {
-  float g = 0.0f;
-  assert(ind.size() == 30);
-  for (size_t i = 1; i < 30; ++i)
-    g += ind.data(i);
-  g = 9.0f * g / 29.0f;
-  g += 1.0f;
-  return g;
-}
 
-SFERES_FITNESS(FitZDT2, sferes::fit::Fitness) {
-public:
-  template<typename Indiv>
-  void eval(Indiv& ind) {
-    this->_objs.resize(3);// resize for div
-    float f1 = ind.data(0);
-    float g = _g(ind);
-    float h = 1.0f - pow((f1 / g), 2.0);
-    float f2 = g * h;
+// Rastrigin
+SFERES_FITNESS(Rastrigin, sferes::fit::Fitness) {
+  public:
+  template <typename Indiv>
+  void eval(Indiv & ind) {
+    this->_objs.resize(2);
+    float f = 10 * ind.size();
+    for (size_t i = 0; i < ind.size(); ++i)
+    f += ind.data(i) * ind.data(i) - 10 * cos(2 * M_PI * ind.data(i));
+    this->_value = -f;
 
-    this->_objs[0] = -f1;
-    this->_objs[1] = -f2;
-    this->_v = Eigen::VectorXf(ind.data().size());
-    for (size_t i = 0; i < this->_v.size(); ++i)
-      this->_v(i) = ind.data()[i];
+    _desc.clear();
+    _desc.push_back(ind.gen().data(0));
+    _desc.push_back(ind.gen().data(1));
   }
   template<typename Indiv>
-  float dist(const Indiv& ind) {
-    return (_v - ind.fit()._v).squaredNorm();
+  double dist(const Indiv& ind) {
+    // Euclidean distance
+    float x1 = _desc[0] - ind.fit()._desc[0];
+    float x2 = _desc[1] - ind.fit()._desc[1];
+    return x1 * x1 + x2 * x2;
   }
-  Eigen::VectorXf _v;
+protected:
+  std::vector<double> _desc;
 };
 
 
-BOOST_AUTO_TEST_CASE(test_novelty_multi) {
+
+BOOST_AUTO_TEST_CASE(test_nslc) {
   srand(time(0));
 
   typedef gen::EvoFloat<30, Params> gen_t;
-  typedef phen::Parameters<gen_t, FitZDT2<Params>, Params> phen_t;
+  typedef phen::Parameters<gen_t, Rastrigin<Params>, Params> phen_t;
   typedef eval::Parallel<Params> eval_t;
-  typedef boost::fusion::vector<stat::ParetoFront<phen_t, Params> > stat_t;//,
-                                //stat::BestArchiveFit<phen_t, Params>,
-                                //stat::Archive<phen_t, Params> >  stat_t;
-  typedef modif::Novelty<phen_t, Params> modifier_t;
+  typedef boost::fusion::vector<stat::BestArchiveFit<phen_t, Params>,
+                                stat::Archive<phen_t, Params> >  stat_t;
+  typedef boost::fusion::vector<modif::Dummy<> > modifier_t;
   typedef ea::Nslc<phen_t, eval_t, stat_t, modifier_t, Params> ea_t;
   ea_t ea;
 
   ea.run();
 
-  //ea.stat<0>().show_all(std::cout, 0);
-  BOOST_CHECK(ea.stat<0>().pareto_front().size() > 50);
-
-  BOOST_FOREACH(boost::shared_ptr<phen_t> p, ea.stat<0>().pareto_front()) {
-      BOOST_CHECK_EQUAL(p->fit().objs().size(), 3);
-  }
 }
-
-
-SFERES_FITNESS(FitNovelty, sferes::fit::Fitness) {
-public:
-  template<typename Indiv>
-  void eval(Indiv& ind) {
-    this->_objs.resize(1); // pure novelty
-    float f1 = ind.data(0);
-    float g = _g(ind);
-    float h = 1.0f - pow((f1 / g), 2.0);
-    float f2 = g * h;
-
-    this->_objs[0] = -f1;
-    this->_objs[1] = -f2;
-    this->_v = Eigen::VectorXf(ind.data().size());
-    for (size_t i = 0; i < this->_v.size(); ++i)
-      this->_v(i) = ind.data()[i];
-  }
-  template<typename Indiv>
-  float dist(const Indiv& ind) {
-    return (_v - ind.fit()._v).squaredNorm();
-  }
-  Eigen::VectorXf _v;
-};
-
-
-/*
-BOOST_AUTO_TEST_CASE(test_novelty) {
-  srand(time(0));
-
-  typedef gen::EvoFloat<30, Params> gen_t;
-  typedef phen::Parameters<gen_t, FitZDT2<Params>, Params> phen_t;
-  typedef eval::Parallel<Params> eval_t;
-  typedef boost::fusion::vector<stat::BestArchive<phen_t, Params>,
-                                stat::Archive<phen_t, Params> >  stat_t;
-  typedef modif::Novelty<phen_t, Params> modifier_t;
-  typedef ea::Nsga2<phen_t, eval_t, stat_t, modifier_t, Params> ea_t;
-  ea_t ea;
-
-  ea.run();
-
-  ea.stat<0>().show_all(std::cout, 0);
-  BOOST_CHECK(ea.stat<0>().pareto_front().size() > 50);
-
-  BOOST_FOREACH(boost::shared_ptr<phen_t> p, ea.stat<0>().pareto_front()) {
-      BOOST_CHECK_EQUAL(p->fit().objs().size(), 3);
-  }
-}
-*/
